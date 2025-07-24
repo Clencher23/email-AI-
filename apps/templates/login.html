@@ -1,0 +1,209 @@
+<style>
+    .center-login-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f6f8fc;
+    }
+
+    .login-page {
+        background: #f6f8fc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .login-box .loader {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #5e72e4;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+
+    .login-box {
+        background: #fff;
+        padding: 2.75rem 2.25rem 2.25rem 2.25rem;
+        border-radius: 18px;
+        box-shadow: 0 12px 36px rgba(30, 42, 87, 0.09);
+        width: 100%;
+        max-width: 410px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .login-box h2 {
+        margin-bottom: 1.75rem;
+        color: #5e72e4;
+        font-size: 1.32rem;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: 0.01em;
+    }
+
+    .login-box h3 {
+        margin-bottom: 1.2rem;
+        color: #5e72e4;
+        font-size: 1.1rem;
+        font-weight: 500;
+        text-align: center;
+        letter-spacing: 0.01em;
+    }
+
+    .login-box label {
+        display: block;
+        margin-bottom: 0.32rem;
+        font-weight: 600;
+        color: #333955;
+        font-size: 1rem;
+        letter-spacing: 0.005em;
+    }
+
+    .login-box input {
+        width: 100%;
+        padding: 0.82rem 0.95rem;
+        border-radius: 9px;
+        border: 1.2px solid #e4e9f2;
+        margin-bottom: 1.18rem;
+        font-size: 1.02rem;
+        box-sizing: border-box;
+        transition: border-color 0.23s, box-shadow 0.23s;
+        background: #fcfcfe;
+        color: #242846;
+    }
+
+    .login-box input::placeholder {
+        color: #a3adc9;
+        opacity: 1;
+        font-size: 0.98rem;
+    }
+
+    .login-box input:focus {
+        outline: none;
+        border-color: #5e72e4;
+        box-shadow: 0 0 0 4px rgba(94, 114, 228, 0.11);
+        background: #f8f9fd;
+    }
+
+    .login-box button {
+        width: 100%;
+        background: linear-gradient(90deg, #5e72e4 65%, #4a60d4 100%);
+        color: #fff;
+        border: none;
+        border-radius: 9px;
+        padding: 1rem;
+        font-weight: 700;
+        font-size: 1.07rem;
+        cursor: pointer;
+        transition: background 0.16s, transform 0.1s;
+        box-shadow: 0 2px 12px rgba(94, 114, 228, 0.07);
+    }
+
+    .login-box button:hover,
+    .login-box button:focus {
+        background: linear-gradient(90deg, #4a60d4 75%, #4056c7 100%);
+        transform: translateY(-1px) scale(1.015);
+    }
+
+    .login-box .error {
+        color: #d32f2f;
+        margin-bottom: 1.18rem;
+        font-size: 0.96rem;
+        text-align: center;
+        letter-spacing: 0.01em;
+    }
+</style>
+
+
+<div class="center-login-content">
+    <div class="login-box">
+        <h2>Email Login </h2>
+        <h3>Use your Mail ID and password</h3>
+        <form id="loginForm" autocomplete="off">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="Enter your email" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" required />
+
+            <label for="imap">IMAP Server</label>
+            <!-- <input type="text" id="imap" value="mail.dotsquares.com" readonly /> -->
+            <input type="text" id="imap" value="mail.24livehost.com" readonly />
+            <!-- <input type="text" id="imap" value="imap.gmail.com" readonly /> -->
+
+            <!-- <button type="submit" id="loginBtn">Login</button> -->
+            <button type="submit" id="loginBtn">
+                <span id="loginBtnText">Login</span>
+                <span id="loginLoader" class="loader" style="display: none;"></span>
+            </button>
+
+            <div id="errorMsg" class="error" style="display:none"></div>
+        </form>
+    </div>
+</div>
+
+
+
+
+<script>
+    document.getElementById('loginForm').onsubmit = async function (e) {
+        e.preventDefault();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const imap_server = document.getElementById("imap").value;
+        document.getElementById("errorMsg").style.display = "none";
+
+        // Loader logic start
+        const loginBtn = document.getElementById("loginBtn");
+        const loginBtnText = document.getElementById("loginBtnText");
+        const loginLoader = document.getElementById("loginLoader");
+        loginBtn.disabled = true;
+        loginBtnText.style.display = "none";
+        loginLoader.style.display = "inline-block";
+        // Loader logic end
+
+        try {
+            const res = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, imap_server })
+            });
+            const data = await res.json();
+            if (data.user_id) {
+                window.location.href = "/emails.html";
+            } else {
+                document.getElementById("errorMsg").style.display = "block";
+                document.getElementById("errorMsg").textContent = data.error || "Login failed.";
+            }
+        } catch (err) {
+            document.getElementById("errorMsg").style.display = "block";
+            document.getElementById("errorMsg").textContent = "Network error. Please try again.";
+        }
+
+
+        loginBtn.disabled = false;
+        loginBtnText.style.display = "inline";
+        loginLoader.style.display = "none";
+    };
+</script>

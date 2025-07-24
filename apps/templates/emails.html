@@ -1,0 +1,273 @@
+<style>
+    body {
+        background: #f6f8fc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .container-fluid {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .enquiry-panel {
+        background: #fff;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+        padding: 2rem 1.5rem;
+        overflow-y: auto;
+        height: 100vh;
+    }
+
+    .enquiry-panel:first-child {
+        width: 350px;
+        border-right: 1px solid #ddd;
+    }
+
+    .enquiry-panel:last-child {
+        flex-grow: 1;
+        padding-left: 2rem;
+    }
+
+    #enquiryList li {
+        padding: 0.85rem 1rem;
+        background: #f1f3f9;
+        border-radius: 10px;
+        margin-bottom: 0.65rem;
+        cursor: pointer;
+        font-weight: 500;
+        color: #444;
+        transition: all 0.17s;
+    }
+
+    #enquiryList li:hover,
+    #enquiryList li.active {
+        background: #dee9ff;
+        color: #222;
+    }
+
+    .modal-content {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: none;
+        overflow-y: auto;
+        height: calc(100vh - 140px);
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .email-header {
+        font-size: 1rem;
+    }
+
+    /* .email-body {
+        background: #f8f9fe;
+        padding: 1rem;
+        border-radius: 10px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-y: auto;
+        max-height: 300px;
+        margin-top: 1rem;
+    } */
+    .email-body {
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        color: #232323;
+        background: #f8f9fe;
+        padding: 1.08rem 1rem;
+        border-radius: 10px;
+        white-space: pre-wrap;
+        min-height: 60px;
+        word-break: break-word;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .button-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .action-btn,
+    .logout-btn {
+        background: #5e72e4;
+        color: #fff;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .logout-btn {
+        background: #e57373;
+    }
+
+    .header-logo-container {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 900px) {
+        .container-fluid {
+            flex-direction: column;
+        }
+
+        .enquiry-panel:first-child {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .enquiry-panel:last-child {
+            padding-left: 0;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="enquiry-panel">
+        <div class="header-logo-container">
+            <a href="/emails/list">
+                <!-- <img src="/static/assets/img/brand/nikpolai.png" alt="Your Logo" class="header-logo" /> -->
+            </a>
+        </div>
+        <h4>Inbox</h4>
+        <p class="text-muted">Note: Current Email limit is 10 Records</p>
+        <div class="button-row">
+            <button class="action-btn refresh-btn" onclick="location.reload();">Refresh</button>
+            <button class="logout-btn" onclick="logoutUser()">Logout</button>
+        </div>
+        <ul id="enquiryList"></ul>
+    </div>
+    <div class="enquiry-panel" id="threadDetailPanel" style="display: none;">
+        <h4>Thread Detail</h4>
+        <div class="modal-content">
+            <div class="email-header">
+                <div><strong>From:</strong> <span id="modal-from"></span></div>
+                <div><strong>Subject:</strong> <span id="modal-subject"></span></div>
+                <div><strong>Date:</strong> <span id="modal-date"></span></div>
+            </div>
+            <div class="email-body" id="modal-body"></div>
+            <div class="attachments-list" id="modal-attachments"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.4/dist/purify.min.js"></script>
+<script>
+    function $(sel) { return document.querySelector(sel); }
+    let currentEmailData = null;
+
+    function showModal(modalId) { $(modalId).classList.add('active'); }
+    function hideModal(modalId) { $(modalId).classList.remove('active'); }
+
+    async function loadEmails() {
+        const enquiryList = $('#enquiryList');
+        enquiryList.innerHTML = "<li class='no-emails'>Loading...</li>";
+        try {
+            const res = await fetch('/emails/list');
+            const data = await res.json();
+            enquiryList.innerHTML = "";
+            if (Array.isArray(data) && data.length) {
+                data.forEach(email => {
+                    const li = document.createElement('li');
+                    li.textContent = (email.subject || "(No Subject)") + " — " + (email.from || "");
+                    li.addEventListener('click', () => showEmailModal(email));
+                    enquiryList.appendChild(li);
+                });
+            } else {
+                enquiryList.innerHTML = "<li class='no-emails'>No emails found.</li>";
+            }
+        } catch (e) {
+            enquiryList.innerHTML = "<li class='no-emails'>Failed to load emails.</li>";
+        }
+    }
+
+
+    async function showEmailModal(email) {
+        $('#threadDetailPanel').style.display = '';
+        $('#modal-from').textContent = email.from || "";
+        $('#modal-subject').textContent = email.subject || "";
+        $('#modal-date').textContent = formatDate(email.date || "");
+        $('#modal-body').innerHTML = "<div class='no-emails'>Loading email...</div>";
+        $('#modal-attachments').innerHTML = "";
+
+        try {
+            const res = await fetch(`/emails/${email.id}`);
+            const data = await res.json();
+            currentEmailData = data;
+
+            $('#modal-body').innerHTML = data.body
+                ? DOMPurify.sanitize(data.body, { FORBID_TAGS: ['img'] })
+                : "(No content)";
+
+            // ✅ Render attachments safely
+            renderAttachments(data.attachments || [], '#modal-attachments');
+        } catch (e) {
+            console.error("Error in showEmailModal:", e);
+            $('#modal-body').innerHTML = "<div class='no-emails'>Failed to load email.</div>";
+        }
+    }
+
+    function renderAttachments(attachments, containerSel) {
+        const attachDiv = $(containerSel);
+        attachDiv.innerHTML = "";
+
+        if (Array.isArray(attachments) && attachments.length) {
+            attachments.forEach(att => {
+                const cleanName = att.filename?.replace(/^\d+_/, "") || "Unnamed";
+                const a = document.createElement('a');
+                a.href = att.url;
+                a.className = 'attachment-link';
+                a.target = '_blank';
+                a.download = '';
+                a.textContent = `📎 ${cleanName}`;
+                a.style.display = 'block'; // ✅ Show one per line
+                a.style.marginBottom = '6px'; // Optional spacing
+                attachDiv.appendChild(a);
+            });
+        } else {
+            attachDiv.innerHTML = "<div class='no-attachments'>No attachments</div>";
+        }
+    }
+
+
+
+    $('#closeExtractModalBtn')?.addEventListener("click", () => hideModal('#extractModal'));
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        const weekday = d.toLocaleString('en-US', { weekday: 'short' });
+        const day = d.getDate();
+        const month = d.toLocaleString('en-US', { month: 'short' }).toLowerCase();
+        const year = d.getFullYear();
+        const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return `${weekday}, ${day} ${month} ${year}, ${time}`;
+    }
+    async function logoutUser() {
+        try {
+            await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+            window.location.href = "/";
+        } catch (err) {
+            console.error("Logout failed", err);
+        }
+    }
+    // On load
+    document.addEventListener("DOMContentLoaded", function () {
+        loadEmails();
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadEmails();
+    });
+</script>

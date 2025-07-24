@@ -1,0 +1,13 @@
+Flask==2.3.3
+python-dotenv==1.0.1
+psycopg2-binary --only-binary :all:==2.9.9 #pip install psycopg2-binary --only-binary :all: (use this) if it fails.
+imapclient==2.3.1
+mail-parser==3.15.0
+python-magic==0.4.27
+cryptography==42.0.5
+dotenv
+# base64
+groq
+pillow
+Image
+fitz  # PyMuPDF
